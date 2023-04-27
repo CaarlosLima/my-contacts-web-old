@@ -1,50 +1,152 @@
+/* eslint-disable react/jsx-one-expression-per-line */
+/* eslint-disable no-nested-ternary */
 import arrow from 'assets/images//icons/arrow.svg';
 import edit from 'assets/images//icons/edit.svg';
 import trash from 'assets/images//icons/trash.svg';
-import { Link } from 'react-router-dom';
+import Loader from 'components/Loader';
 import {
-  Container, Header, ListContainer, Card, InputSearchContainer,
+  useCallback, useEffect, useMemo, useState,
+} from 'react';
+import { Link } from 'react-router-dom';
+import ContactsService from 'services/ContactsService';
+import sad from 'assets/images/sad.svg';
+import emptyBox from 'assets/images/empty-box.svg';
+import magnifierQuestion from 'assets/images/magnifier-question.svg';
+import Button from 'components/Button';
+import {
+  Card,
+  Container,
+  EmptyListContainer,
+  ErrorContainer,
+  Header,
+  InputSearchContainer,
+  ListHeader,
+  SearchNotFoundContainer,
 } from './styles';
 
 export default function Home() {
+  const [contacts, setContacts] = useState([]);
+  const [orderBy, setOrderBy] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const filteredContacts = useMemo(() => (
+    contacts.filter((contact) => (
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ))
+  ), [contacts, searchTerm]);
+
+  const loadContacts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const contactsList = await ContactsService.listContacts(orderBy);
+
+      setHasError(false);
+      setContacts(contactsList);
+    } catch {
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [orderBy]);
+
+  function handleChangeSearchTerm(e) {
+    setSearchTerm(e.target.value);
+  }
+
+  function handleTryAgain() {
+    loadContacts();
+  }
+
+  useEffect(() => {
+    loadContacts();
+  }, [loadContacts]);
+
   return (
     <Container>
-      <InputSearchContainer>
-        <input type="text" placeholder="Search by name" />
-      </InputSearchContainer>
+      <Loader isLoading={isLoading} />
 
-      <Header>
-        <strong>3 contatos</strong>
+      {contacts.length > 0 && (
+        <InputSearchContainer>
+          <input value={searchTerm} type="text" placeholder="Search by name" onChange={handleChangeSearchTerm} />
+        </InputSearchContainer>
+      )}
+
+      <Header justifyContent={hasError ? 'flex-end' : (contacts.length > 0 ? 'space-between' : 'center')}>
+        {(!hasError && contacts.length > 0) && (
+          <strong>{`${filteredContacts.length} ${filteredContacts.length === 1 ? 'contato' : 'contatos'}`}</strong>
+        )}
         <Link to="/new">Novo contato</Link>
       </Header>
 
-      <ListContainer>
-        <header>
-          <button type="button">
-            <span>Nome</span>
-            <img src={arrow} alt="Arrow" />
-          </button>
-        </header>
+      {hasError && (
+      <ErrorContainer>
+        <img src={sad} alt="Sad" />
+        <div className="details">
+          <strong>Ocorreu um erro ao obter os seus contatos!</strong>
+          <Button onClick={handleTryAgain} type="button">Tentar novamente</Button>
+        </div>
+      </ErrorContainer>
+      )}
 
-        <Card>
-          <div className="info">
-            <div className="contact-name">
-              <strong>Carlos Lima</strong>
-              <small>instagram</small>
-            </div>
-            <span>aaa@aaa.com.br</span>
-            <span>(48) 99999-9999</span>
-          </div>
-          <div className="actions">
-            <Link to="/edit/1">
-              <img src={edit} alt="Edit" />
-            </Link>
-            <button type="button">
-              <img src={trash} alt="Delete" />
+      {!hasError && (
+      <>
+        {(contacts.length < 1 && !isLoading) && (
+          <EmptyListContainer>
+            <img src={emptyBox} alt="Empty box" />
+            <p>
+              Você ainda não tem nenhum contato cadastrado!
+              Clique no botão <strong>”Novo contato”</strong> à cima para cadastrar o seu primeiro!
+            </p>
+          </EmptyListContainer>
+        )}
+
+        {(contacts.length > 0 && filteredContacts.length < 1) && (
+          <SearchNotFoundContainer>
+            <img src={magnifierQuestion} alt="Magnifier Question" />
+
+            <span>Nenhum resultado foi encontrado para <strong>”{searchTerm}”</strong>.</span>
+          </SearchNotFoundContainer>
+        )}
+
+        {filteredContacts.at(0) && (
+        <ListHeader orderBy={orderBy}>
+          <header>
+            <button
+              type="button"
+              onClick={() => setOrderBy((prevOrderBy) => (prevOrderBy === 'asc' ? 'desc' : 'asc'))}
+            >
+              <span>Nome</span>
+              <img src={arrow} alt="Arrow" />
             </button>
-          </div>
-        </Card>
-      </ListContainer>
+          </header>
+        </ListHeader>
+        )}
+
+        {filteredContacts.map((contact) => (
+          <Card key={contact.id}>
+            <div className="info">
+              <div className="contact-name">
+                <strong>{contact.name}</strong>
+                {contact.category_name && <small>{contact.category_name}</small>}
+              </div>
+              <span>{contact.email}</span>
+              <span>{contact.phone}</span>
+            </div>
+            <div className="actions">
+              <Link to={`/edit/${contact.id}`}>
+                <img src={edit} alt="Edit" />
+              </Link>
+              <button type="button">
+                <img src={trash} alt="Delete" />
+              </button>
+            </div>
+          </Card>
+        ))}
+      </>
+      )}
     </Container>
   );
 }
