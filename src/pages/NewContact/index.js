@@ -15,7 +15,7 @@ export default function NewContact() {
       const response = await ContactsService.createContacts(contact);
       console.log(response);
     } catch (error) {
-      alert('Error creating contact');
+      alert('Error creating contact', error);
     }
   }
 

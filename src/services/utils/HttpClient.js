@@ -37,7 +37,7 @@ class HttpCliente {
     }
 
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: options.methed,
+      method: options.method,
       body: JSON.stringify(options.body),
       headers,
     });
