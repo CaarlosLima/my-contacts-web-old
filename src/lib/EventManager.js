@@ -20,4 +20,16 @@ export default class EventManager {
       listener(payload);
     });
   }
+
+  removeListener(event, listenerToRemove) {
+    const listeners = this.listeners[event];
+
+    if (!listeners) {
+      return;
+    }
+
+    const filteredListeners = listeners.filter((listener) => listener !== listenerToRemove);
+
+    this.listeners[event] = filteredListeners;
+  }
 }
