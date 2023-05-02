@@ -1,5 +1,8 @@
+/* eslint-disable react/display-name */
 import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
+import {
+  forwardRef, useEffect, useImperativeHandle, useState,
+} from 'react';
 import Button from 'components/Button';
 import FormGroup from 'components/FormGroup';
 import Input from 'components/Input';
@@ -10,7 +13,7 @@ import formatPhone from 'utils/formatPhone';
 import CategoriesService from 'services/CategoriesService';
 import { ButtonContainer, Form } from './styles';
 
-export default function ContactForm({ buttonLabel, onSubmit }) {
+const ContactForm = forwardRef(({ buttonLabel, onSubmit }, ref) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -60,6 +63,15 @@ export default function ContactForm({ buttonLabel, onSubmit }) {
 
     setIsSubmitting(false);
   }
+
+  useImperativeHandle(ref, () => ({
+    setFieldsValues: (contact) => {
+      setName(contact.name ?? '');
+      setEmail(contact.email ?? '');
+      setPhone(formatPhone(contact.phone ?? ''));
+      setCategoryId(contact.category_id ?? '');
+    },
+  }), []);
 
   useEffect(() => {
     async function loadCategories() {
@@ -127,9 +139,11 @@ export default function ContactForm({ buttonLabel, onSubmit }) {
       </ButtonContainer>
     </Form>
   );
-}
+});
 
 ContactForm.propTypes = {
   buttonLabel: PropTypes.string.isRequired,
   onSubmit: PropTypes.func.isRequired,
 };
+
+export default ContactForm;
